@@ -9,8 +9,8 @@ using namespace std;
 using namespace Eigen;
 
 // 文件路径
-string left_file = "./left.png";
-string right_file = "./right.png";
+string left_file = "/home/huqiang/slambook2/ch5/stereo/left.png";
+string right_file = "/home/huqiang/slambook2/ch5/stereo/right.png";
 
 // 在pangolin中画图，已写好，无需调整
 void showPointCloud(
@@ -18,7 +18,7 @@ void showPointCloud(
 
 int main(int argc, char **argv) {
 
-    // 内参
+    // 内参 fx为焦距乘以x轴的放大倍数，fy为焦距乘以y轴的放大倍数
     double fx = 718.856, fy = 718.856, cx = 607.1928, cy = 185.2157;
     // 基线
     double b = 0.573;
@@ -26,10 +26,12 @@ int main(int argc, char **argv) {
     // 读取图像
     cv::Mat left = cv::imread(left_file, 0);
     cv::Mat right = cv::imread(right_file, 0);
+
+    //半全局立体匹配
     cv::Ptr<cv::StereoSGBM> sgbm = cv::StereoSGBM::create(
         0, 96, 9, 8 * 9 * 9, 32 * 9 * 9, 1, 63, 10, 100, 32);    // 神奇的参数
     cv::Mat disparity_sgbm, disparity;
-    sgbm->compute(left, right, disparity_sgbm);
+    sgbm->compute(left, right, disparity_sgbm);//计算16bit固定精度视差 
     disparity_sgbm.convertTo(disparity, CV_32F, 1.0 / 16.0f);
 
     // 生成点云

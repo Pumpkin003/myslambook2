@@ -10,8 +10,8 @@
 using namespace std;
 
 // global variables
-string first_file = "./1.png";
-string second_file = "./2.png";
+string first_file = "/home/huqiang/slambook2/ch7/1.png";
+string second_file = "/home/huqiang/slambook2/ch7/2.png";
 
 // 32 bit unsigned int, will have 8, 8x32=256
 typedef vector<uint32_t> DescType; // Descriptor type
@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
 }
 
 // -------------------------------------------------------------------------------------------------- //
-// ORB pattern
+// ORB pattern 随机选点的点坐标
 int ORB_pattern[256 * 4] = {
   8, -3, 9, 5/*mean (0), correlation (0)*/,
   4, 2, 7, -12/*mean (1.12461e-05), correlation (0.0437584)*/,
@@ -346,12 +346,13 @@ void ComputeORB(const cv::Mat &img, vector<cv::KeyPoint> &keypoints, vector<Desc
   int bad_points = 0;
   for (auto &kp: keypoints) {
     if (kp.pt.x < half_boundary || kp.pt.y < half_boundary ||
-        kp.pt.x >= img.cols - half_boundary || kp.pt.y >= img.rows - half_boundary) {
+        kp.pt.x >= img.cols - half_boundary || kp.pt.y >= img.rows - half_boundary)
+         {
       // outside
       bad_points++;
       descriptors.push_back({});
       continue;
-    }
+    }//检测关键点是否太靠近图像边缘
 
     float m01 = 0, m10 = 0;
     for (int dx = -half_patch_size; dx < half_patch_size; ++dx) {
@@ -359,30 +360,34 @@ void ComputeORB(const cv::Mat &img, vector<cv::KeyPoint> &keypoints, vector<Desc
         uchar pixel = img.at<uchar>(kp.pt.y + dy, kp.pt.x + dx);
         m10 += dx * pixel;
         m01 += dy * pixel;
-      }
+      }//计算x方向矩和y方向矩
     }
 
     // angle should be arc tan(m01/m10);
     float m_sqrt = sqrt(m01 * m01 + m10 * m10) + 1e-18; // avoid divide by zero
     float sin_theta = m01 / m_sqrt;
     float cos_theta = m10 / m_sqrt;
+    //计算主方向
 
     // compute the angle of this point
     DescType desc(8, 0);
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 8; i++)//八个uint32_t
+     {
       uint32_t d = 0;
-      for (int k = 0; k < 32; k++) {
+      for (int k = 0; k < 32; k++) //32位
+      {
         int idx_pq = i * 32 + k;
         cv::Point2f p(ORB_pattern[idx_pq * 4], ORB_pattern[idx_pq * 4 + 1]);
         cv::Point2f q(ORB_pattern[idx_pq * 4 + 2], ORB_pattern[idx_pq * 4 + 3]);
 
         // rotate with theta
+        //旋转得到关键点在图像块中的坐标
         cv::Point2f pp = cv::Point2f(cos_theta * p.x - sin_theta * p.y, sin_theta * p.x + cos_theta * p.y)
                          + kp.pt;
         cv::Point2f qq = cv::Point2f(cos_theta * q.x - sin_theta * q.y, sin_theta * q.x + cos_theta * q.y)
                          + kp.pt;
         if (img.at<uchar>(pp.y, pp.x) < img.at<uchar>(qq.y, qq.x)) {
-          d |= 1 << k;
+          d |= 1 << k;//设置第k位为1
         }
       }
       desc[i] = d;
@@ -395,7 +400,7 @@ void ComputeORB(const cv::Mat &img, vector<cv::KeyPoint> &keypoints, vector<Desc
 
 // brute-force matching
 void BfMatch(const vector<DescType> &desc1, const vector<DescType> &desc2, vector<cv::DMatch> &matches) {
-  const int d_max = 40;
+  const int d_max = 40;//设置汉明距离的最大阈值
 
   for (size_t i1 = 0; i1 < desc1.size(); ++i1) {
     if (desc1[i1].empty()) continue;
@@ -405,6 +410,7 @@ void BfMatch(const vector<DescType> &desc1, const vector<DescType> &desc2, vecto
       int distance = 0;
       for (int k = 0; k < 8; k++) {
         distance += _mm_popcnt_u32(desc1[i1][k] ^ desc2[i2][k]);
+        //括号内^表示按位异或，括号外的运算用于计算1的个数
       }
       if (distance < d_max && distance < m.distance) {
         m.distance = distance;

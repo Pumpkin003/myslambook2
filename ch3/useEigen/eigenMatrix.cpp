@@ -31,6 +31,7 @@ int main(int argc, char **argv) {
   Matrix3d matrix_33 = Matrix3d::Zero(); //初始化为零
   // 如果不确定矩阵大小，可以使用动态大小的矩阵
   Matrix<double, Dynamic, Dynamic> matrix_dynamic;
+  // dynamic: 动态的
   // 更简单的
   MatrixXd matrix_x;
   // 这种类型还有很多，我们不一一列举
@@ -45,6 +46,7 @@ int main(int argc, char **argv) {
   cout << "print matrix 2x3: " << endl;
   for (int i = 0; i < 2; i++) {
     for (int j = 0; j < 3; j++) cout << matrix_23(i, j) << "\t";
+    // \t表示制表符，即Tab键
     cout << endl;
   }
 
@@ -79,6 +81,7 @@ int main(int argc, char **argv) {
   // 特征值
   // 实对称矩阵可以保证对角化成功
   SelfAdjointEigenSolver<Matrix3d> eigen_solver(matrix_33.transpose() * matrix_33);
+  //SlefAdjointEigenSolver 是一个高效特征值求解器
   cout << "Eigen values = \n" << eigen_solver.eigenvalues() << endl;
   cout << "Eigen vectors = \n" << eigen_solver.eigenvectors() << endl;
 

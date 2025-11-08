@@ -42,7 +42,7 @@ public:
 
   CurveFittingEdge(double x) : BaseUnaryEdge(), _x(x) {}
 
-  // 计算曲线模型误差
+  // 计算曲线模型误差 定义残差计算方式
   virtual void computeError() override {
     const CurveFittingVertex *v = static_cast<const CurveFittingVertex *> (_vertices[0]);
     const Eigen::Vector3d abc = v->estimate();
@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
   g2o::SparseOptimizer optimizer;     // 图模型
   optimizer.setAlgorithm(solver);   // 设置求解器
   optimizer.setVerbose(true);       // 打开调试输出
-
+                                                                                                                             
   // 往图中增加顶点
   CurveFittingVertex *v = new CurveFittingVertex();
   v->setEstimate(Eigen::Vector3d(ae, be, ce));

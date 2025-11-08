@@ -21,6 +21,10 @@ using namespace Eigen;
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+//添加头文件
+#include <opencv2/imgproc/types_c.h>
+
+
 using namespace cv;
 
 /**********************************************
@@ -57,12 +61,13 @@ bool readDatasetFiles(
  * 根据新的图像更新深度估计
  * @param ref           参考图像
  * @param curr          当前图像
- * @param T_C_R         参考图像到当前图像的位姿
+ * @param T_C_R         参考图像到当前图像的位姿 位姿转换
  * @param depth         深度
  * @param depth_cov     深度方差
  * @return              是否成功
  */
-bool update(
+//函数没有返回值，需要修改
+void update(
     const Mat &ref,
     const Mat &curr,
     const SE3d &T_C_R,
@@ -123,7 +128,8 @@ bool updateDepthFilter(
 double NCC(const Mat &ref, const Mat &curr, const Vector2d &pt_ref, const Vector2d &pt_curr);
 
 // 双线性灰度插值
-inline double getBilinearInterpolatedValue(const Mat &img, const Vector2d &pt) {
+inline double getBilinearInterpolatedValue(const Mat &img, const Vector2d &pt) 
+{
     uchar *d = &img.data[int(pt(1, 0)) * img.step + int(pt(0, 0))];
     double xx = pt(0, 0) - floor(pt(0, 0));
     double yy = pt(1, 0) - floor(pt(1, 0));
@@ -184,29 +190,31 @@ int main(int argc, char **argv) {
     vector<SE3d> poses_TWC;
     Mat ref_depth;
     bool ret = readDatasetFiles(argv[1], color_image_files, poses_TWC, ref_depth);
-    if (ret == false) {
+    if (ret == false)
+    {
         cout << "Reading image files failed!" << endl;
         return -1;
     }
     cout << "read total " << color_image_files.size() << " files." << endl;
 
     // 第一张图
-    Mat ref = imread(color_image_files[0], 0);                // gray-scale image
+    Mat ref = imread(color_image_files[0], 0);                // gray-scale image 灰度图
     SE3d pose_ref_TWC = poses_TWC[0];
     double init_depth = 3.0;    // 深度初始值
     double init_cov2 = 3.0;     // 方差初始值
     Mat depth(height, width, CV_64F, init_depth);             // 深度图
     Mat depth_cov2(height, width, CV_64F, init_cov2);         // 深度图方差
 
-    for (int index = 1; index < color_image_files.size(); index++) {
+    for (int index = 1; index < color_image_files.size(); index++) 
+    {
         cout << "*** loop " << index << " ***" << endl;
         Mat curr = imread(color_image_files[index], 0);
         if (curr.data == nullptr) continue;
         SE3d pose_curr_TWC = poses_TWC[index];
         SE3d pose_T_C_R = pose_curr_TWC.inverse() * pose_ref_TWC;   // 坐标转换关系： T_C_W * T_W_R = T_C_R
         update(ref, curr, pose_T_C_R, depth, depth_cov2);
-        evaludateDepth(ref_depth, depth);
-        plotDepth(ref_depth, depth);
+        evaludateDepth(ref_depth, depth);//评估
+        plotDepth(ref_depth, depth);//绘制
         imshow("image", curr);
         waitKey(1);
     }
@@ -222,18 +230,20 @@ bool readDatasetFiles(
     const string &path,
     vector<string> &color_image_files,
     std::vector<SE3d> &poses,
-    cv::Mat &ref_depth) {
+    cv::Mat &ref_depth)
+
+    {
     ifstream fin(path + "/first_200_frames_traj_over_table_input_sequence.txt");
     if (!fin) return false;
 
     while (!fin.eof()) {
         // 数据格式：图像文件名 tx, ty, tz, qx, qy, qz, qw ，注意是 TWC 而非 TCW
         string image;
-        fin >> image;
+        fin >> image;//读入图像名称
         double data[7];
         for (double &d:data) fin >> d;
 
-        color_image_files.push_back(path + string("/images/") + image);
+        color_image_files.push_back(path + string("/images/") + image);//获取图像名称序列
         poses.push_back(
             SE3d(Quaterniond(data[6], data[3], data[4], data[5]),
                  Vector3d(data[0], data[1], data[2]))
@@ -242,7 +252,7 @@ bool readDatasetFiles(
     }
     fin.close();
 
-    // load reference depth
+    // load reference depth 读入参考深度图
     fin.open(path + "/depthmaps/scene_000.depth");
     ref_depth = cv::Mat(height, width, CV_64F);
     if (!fin) return false;
@@ -250,14 +260,16 @@ bool readDatasetFiles(
         for (int x = 0; x < width; x++) {
             double depth = 0;
             fin >> depth;
-            ref_depth.ptr<double>(y)[x] = depth / 100.0;
+            ref_depth.ptr<double>(y)[x] = depth / 100.0;//深度除以100
         }
 
     return true;
 }
 
 // 对整个深度图进行更新
-bool update(const Mat &ref, const Mat &curr, const SE3d &T_C_R, Mat &depth, Mat &depth_cov2) {
+//函数没有返回值，需要修改
+void update(const Mat &ref, const Mat &curr, const SE3d &T_C_R, Mat &depth, Mat &depth_cov2) 
+{
     for (int x = boarder; x < width - boarder; x++)
         for (int y = boarder; y < height - boarder; y++) {
             // 遍历每个像素
@@ -281,7 +293,7 @@ bool update(const Mat &ref, const Mat &curr, const SE3d &T_C_R, Mat &depth, Mat 
                 continue;
 
             // 取消该注释以显示匹配
-            // showEpipolarMatch(ref, curr, Vector2d(x, y), pt_curr);
+            showEpipolarMatch(ref, curr, Vector2d(x, y), pt_curr);
 
             // 匹配成功，更新深度图
             updateDepthFilter(Vector2d(x, y), pt_curr, T_C_R, epipolar_direction, depth, depth_cov2);
@@ -295,10 +307,11 @@ bool epipolarSearch(
     const SE3d &T_C_R, const Vector2d &pt_ref,
     const double &depth_mu, const double &depth_cov,
     Vector2d &pt_curr, Vector2d &epipolar_direction) {
-    Vector3d f_ref = px2cam(pt_ref);
-    f_ref.normalize();
+    Vector3d f_ref = px2cam(pt_ref);//获取相机空间坐标系坐标
+    f_ref.normalize();//归一化
     Vector3d P_ref = f_ref * depth_mu;    // 参考帧的 P 向量
 
+    //将像素深度值假设为高斯分布，找到极线的范围
     Vector2d px_mean_curr = cam2px(T_C_R * P_ref); // 按深度均值投影的像素
     double d_min = depth_mu - 3 * depth_cov, d_max = depth_mu + 3 * depth_cov;
     if (d_min < 0.1) d_min = 0.1;
@@ -307,17 +320,18 @@ bool epipolarSearch(
 
     Vector2d epipolar_line = px_max_curr - px_min_curr;    // 极线（线段形式）
     epipolar_direction = epipolar_line;        // 极线方向
-    epipolar_direction.normalize();
+    epipolar_direction.normalize();//归一化
     double half_length = 0.5 * epipolar_line.norm();    // 极线线段的半长度
     if (half_length > 100) half_length = 100;   // 我们不希望搜索太多东西
 
     // 取消此句注释以显示极线（线段）
-    // showEpipolarLine( ref, curr, pt_ref, px_min_curr, px_max_curr );
+    showEpipolarLine( ref, curr, pt_ref, px_min_curr, px_max_curr );
 
     // 在极线上搜索，以深度均值点为中心，左右各取半长度
     double best_ncc = -1.0;
     Vector2d best_px_curr;
-    for (double l = -half_length; l <= half_length; l += 0.7) { // l+=sqrt(2)
+    for (double l = -half_length; l <= half_length; l += 0.7)//步长为0.7
+     { // l+=sqrt(2)
         Vector2d px_curr = px_mean_curr + l * epipolar_direction;  // 待匹配点
         if (!inside(px_curr))
             continue;
@@ -344,7 +358,7 @@ double NCC(
     for (int x = -ncc_window_size; x <= ncc_window_size; x++)
         for (int y = -ncc_window_size; y <= ncc_window_size; y++) {
             double value_ref = double(ref.ptr<uchar>(int(y + pt_ref(1, 0)))[int(x + pt_ref(0, 0))]) / 255.0;
-            mean_ref += value_ref;
+            mean_ref += value_ref;//获取像素值并归一化，同时计算均值
 
             double value_curr = getBilinearInterpolatedValue(curr, pt_curr + Vector2d(x, y));
             mean_curr += value_curr;

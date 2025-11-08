@@ -30,6 +30,7 @@ int main(int argc, char **argv) {
   }
 
   // 遍历图像, 请注意以下遍历方式亦可使用于随机像素访问
+  
   // 使用 std::chrono 来给算法计时
   chrono::steady_clock::time_point t1 = chrono::steady_clock::now();
   for (size_t y = 0; y < image.rows; y++) {

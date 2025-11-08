@@ -7,7 +7,8 @@ using namespace std;
 
 void SolveBA(BALProblem &bal_problem);
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv) 
+{
     if (argc != 2) {
         cout << "usage: bundle_adjustment_ceres bal_data.txt" << endl;
         return 1;
@@ -48,6 +49,7 @@ void SolveBA(BALProblem &bal_problem) {
         // Each observation corresponds to a pair of a camera and a point
         // which are identified by camera_index()[i] and point_index()[i]
         // respectively.
+        // 获取camera和point的位置
         double *camera = cameras + camera_block_size * bal_problem.camera_index()[i];
         double *point = points + point_block_size * bal_problem.point_index()[i];
 
@@ -62,7 +64,7 @@ void SolveBA(BALProblem &bal_problem) {
 
     std::cout << "Solving ceres BA ... " << endl;
     ceres::Solver::Options options;
-    options.linear_solver_type = ceres::LinearSolverType::SPARSE_SCHUR;
+    options.linear_solver_type = ceres::LinearSolverType::SPARSE_SCHUR;//使用舒尔补边缘化进行加速求解
     options.minimizer_progress_to_stdout = true;
     ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary);

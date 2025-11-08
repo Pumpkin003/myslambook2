@@ -32,8 +32,8 @@ Matrix6d JRInv(const SE3d &e) {
     J.block(0, 3, 3, 3) = SO3d::hat(e.translation());
     J.block(3, 0, 3, 3) = Matrix3d::Zero(3, 3);
     J.block(3, 3, 3, 3) = SO3d::hat(e.so3().log());
-    // J = J * 0.5 + Matrix6d::Identity();
-    J = Matrix6d::Identity();    // try Identity if you want
+    J = J * 0.5 + Matrix6d::Identity();
+    // J = Matrix6d::Identity();    // try Identity if you want
     return J;
 }
 
@@ -52,6 +52,7 @@ public:
             Quaterniond(data[6], data[3], data[4], data[5]),
             Vector3d(data[0], data[1], data[2])
         ));
+        return true;//不加会报错
     }
 
     virtual bool write(ostream &os) const override {

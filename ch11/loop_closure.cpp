@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
     // read the images and database  
     cout << "reading database" << endl;
     DBoW3::Vocabulary vocab("./vocabulary.yml.gz");
-    // DBoW3::Vocabulary vocab("./vocab_larger.yml.gz");  // use large vocab if you want: 
+    //DBoW3::Vocabulary vocab("./vocab_larger.yml.gz");  // use large vocab if you want: 
     if (vocab.empty()) {
         cerr << "Vocabulary does not exist." << endl;
         return 1;
@@ -57,9 +57,19 @@ int main(int argc, char **argv) {
 
     // or with database 
     cout << "comparing images with database " << endl;
-    DBoW3::Database db(vocab, false, 0);
+    // // 检查词汇表是否为空
+    // if (vocab.empty()) {
+    //     cerr << "Error: Vocabulary is empty! Check if it's loaded or trained correctly." << endl;
+    //     return -1;
+    // }
+    // // 打印词汇表大小（正常应远大于0，例如几千到几万）
+    // cout << "Vocabulary size: " << vocab.size() << endl;
+    DBoW3::Database db(vocab, false,0);
     for (int i = 0; i < descriptors.size(); i++)
+       {
         db.add(descriptors[i]);
+        }
+
     cout << "database info: " << db << endl;
     for (int i = 0; i < descriptors.size(); i++) {
         DBoW3::QueryResults ret;

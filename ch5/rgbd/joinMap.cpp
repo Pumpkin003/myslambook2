@@ -6,6 +6,7 @@
 #include <sophus/se3.hpp>
 
 
+//点云前三维为位置信息，其余为颜色信息
 using namespace std;
 typedef vector<Sophus::SE3d, Eigen::aligned_allocator<Sophus::SE3d>> TrajectoryType;
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
@@ -18,7 +19,7 @@ int main(int argc, char **argv) {
     vector<cv::Mat> colorImgs, depthImgs;    // 彩色图和深度图
     TrajectoryType poses;         // 相机位姿
 
-    ifstream fin("./pose.txt");
+    ifstream fin("/home/huqiang/slambook2/ch5/rgbd/pose.txt");
     if (!fin) {
         cerr << "请在有pose.txt的目录下运行此程序" << endl;
         return 1;
@@ -45,7 +46,7 @@ int main(int argc, char **argv) {
     double fy = 519.0;
     double depthScale = 1000.0;
     vector<Vector6d, Eigen::aligned_allocator<Vector6d>> pointcloud;
-    pointcloud.reserve(1000000);
+    pointcloud.reserve(1000000);//提前扩容
 
     for (int i = 0; i < 5; i++) {
         cout << "转换图像中: " << i + 1 << endl;
@@ -59,7 +60,7 @@ int main(int argc, char **argv) {
                 Eigen::Vector3d point;
                 point[2] = double(d) / depthScale;
                 point[0] = (u - cx) * point[2] / fx;
-                point[1] = (v - cy) * point[2] / fy;
+                point[1] = (v - cy) * point[2] / fy;//相平面内的坐标
                 Eigen::Vector3d pointWorld = T * point;
 
                 Vector6d p;

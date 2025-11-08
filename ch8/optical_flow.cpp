@@ -85,7 +85,8 @@ void OpticalFlowMultiLevel(
  * @return the interpolated value of this pixel
  */
 
-inline float GetPixelValue(const cv::Mat &img, float x, float y) {
+inline float GetPixelValue(const cv::Mat &img, float x, float y)
+ {
     // boundary check
     if (x < 0) x = 0;
     if (y < 0) y = 0;
@@ -142,7 +143,7 @@ int main(int argc, char **argv) {
 
     // plot the differences of those functions
     Mat img2_single;
-    cv::cvtColor(img2, img2_single, CV_GRAY2BGR);
+    cv::cvtColor(img2, img2_single, cv::COLOR_GRAY2BGR);
     for (int i = 0; i < kp2_single.size(); i++) {
         if (success_single[i]) {
             cv::circle(img2_single, kp2_single[i].pt, 2, cv::Scalar(0, 250, 0), 2);
@@ -151,7 +152,7 @@ int main(int argc, char **argv) {
     }
 
     Mat img2_multi;
-    cv::cvtColor(img2, img2_multi, CV_GRAY2BGR);
+    cv::cvtColor(img2, img2_multi, cv::COLOR_GRAY2BGR);
     for (int i = 0; i < kp2_multi.size(); i++) {
         if (success_multi[i]) {
             cv::circle(img2_multi, kp2_multi[i].pt, 2, cv::Scalar(0, 250, 0), 2);
@@ -160,7 +161,7 @@ int main(int argc, char **argv) {
     }
 
     Mat img2_CV;
-    cv::cvtColor(img2, img2_CV, CV_GRAY2BGR);
+    cv::cvtColor(img2, img2_CV, cv::COLOR_GRAY2BGR);
     for (int i = 0; i < pt2.size(); i++) {
         if (status[i]) {
             cv::circle(img2_CV, pt2[i], 2, cv::Scalar(0, 250, 0), 2);
@@ -186,6 +187,8 @@ void OpticalFlowSingleLevel(
     kp2.resize(kp1.size());
     success.resize(kp1.size());
     OpticalFlowTracker tracker(img1, img2, kp1, kp2, success, inverse, has_initial);
+
+    //并行调用计算光流的函数
     parallel_for_(Range(0, kp1.size()),
                   std::bind(&OpticalFlowTracker::calculateOpticalFlow, &tracker, placeholders::_1));
 }
@@ -196,8 +199,9 @@ void OpticalFlowTracker::calculateOpticalFlow(const Range &range) {
     int iterations = 10;
     for (size_t i = range.start; i < range.end; i++) {
         auto kp = kp1[i];
-        double dx = 0, dy = 0; // dx,dy need to be estimated
-        if (has_initial) {
+        double dx = 0, dy = 0; // dx,dy 需要被估计
+        if (has_initial) //假如已有初始值，例如粗匹配结果
+        {
             dx = kp2[i].pt.x - kp.pt.x;
             dy = kp2[i].pt.y - kp.pt.y;
         }
@@ -215,6 +219,7 @@ void OpticalFlowTracker::calculateOpticalFlow(const Range &range) {
                 b = Eigen::Vector2d::Zero();
             } else {
                 // only reset b
+                //使用了反向光流法
                 b = Eigen::Vector2d::Zero();
             }
 
@@ -231,7 +236,7 @@ void OpticalFlowTracker::calculateOpticalFlow(const Range &range) {
                                    GetPixelValue(img2, kp.pt.x + dx + x - 1, kp.pt.y + dy + y)),
                             0.5 * (GetPixelValue(img2, kp.pt.x + dx + x, kp.pt.y + dy + y + 1) -
                                    GetPixelValue(img2, kp.pt.x + dx + x, kp.pt.y + dy + y - 1))
-                        );
+                        );//中心差分公式计算梯度
                     } else if (iter == 0) {
                         // in inverse mode, J keeps same for all iterations
                         // NOTE this J does not change when dx, dy is updated, so we can store it and only compute error
@@ -242,6 +247,7 @@ void OpticalFlowTracker::calculateOpticalFlow(const Range &range) {
                                    GetPixelValue(img1, kp.pt.x + x, kp.pt.y + y - 1))
                         );
                     }
+                    //高斯牛顿法
                     // compute H, b and set cost;
                     b += -error * J;
                     cost += error * error;
@@ -319,6 +325,7 @@ void OpticalFlowMultiLevel(
     cout << "build pyramid time: " << time_used.count() << endl;
 
     // coarse-to-fine LK tracking in pyramids
+    //计算得到其他层的特征点坐标
     vector<KeyPoint> kp1_pyr, kp2_pyr;
     for (auto &kp:kp1) {
         auto kp_top = kp;

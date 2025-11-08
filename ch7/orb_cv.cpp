@@ -13,16 +13,17 @@ int main(int argc, char **argv) {
     return 1;
   }
   //-- 读取图像
-  Mat img_1 = imread(argv[1], CV_LOAD_IMAGE_COLOR);
-  Mat img_2 = imread(argv[2], CV_LOAD_IMAGE_COLOR);
+  Mat img_1 = imread(argv[1], cv::IMREAD_COLOR);
+  Mat img_2 = imread(argv[2], cv::IMREAD_UNCHANGED);
   assert(img_1.data != nullptr && img_2.data != nullptr);
 
   //-- 初始化
-  std::vector<KeyPoint> keypoints_1, keypoints_2;
-  Mat descriptors_1, descriptors_2;
-  Ptr<FeatureDetector> detector = ORB::create();
-  Ptr<DescriptorExtractor> descriptor = ORB::create();
+  std::vector<KeyPoint> keypoints_1, keypoints_2;//存储关键点
+  Mat descriptors_1, descriptors_2;//存储描述子
+  Ptr<FeatureDetector> detector = ORB::create();//创建特征点提取器
+  Ptr<DescriptorExtractor> descriptor = ORB::create();//创建描述子生成器
   Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("BruteForce-Hamming");
+  //创建通过汉明距离来进行匹配的暴力匹配器
 
   //-- 第一步:检测 Oriented FAST 角点位置
   chrono::steady_clock::time_point t1 = chrono::steady_clock::now();
